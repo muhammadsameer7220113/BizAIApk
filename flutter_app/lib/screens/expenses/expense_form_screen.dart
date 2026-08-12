@@ -45,7 +45,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         const SizedBox(height: 16),
         TextField(controller: _amountCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Amount')),
         const SizedBox(height: 16),
-        DropdownButtonFormField<int>(value: _categoryId, decoration: const InputDecoration(labelText: 'Category'), items: _categories.map((c) => DropdownMenuItem(value: c['id'], child: Text(c['name']))).toList(), onChanged: (v) => setState(() => _categoryId = v)),
+        DropdownButtonFormField<int>(value: _categoryId, decoration: const InputDecoration(labelText: 'Category'), items: _categories.map((c) => DropdownMenuItem<int>(value: c['id'] as int, child: Text(c['name'].toString()))).toList(), onChanged: (v) => setState(() => _categoryId = v)),
         const SizedBox(height: 24),
         SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _loading ? null : _save, child: _loading ? const CircularProgressIndicator(color: Colors.white) : const Text('Save Expense'))),
       ])),
