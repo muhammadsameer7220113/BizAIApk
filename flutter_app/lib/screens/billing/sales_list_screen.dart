@@ -35,7 +35,7 @@ class SalesListScreen extends ConsumerWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Text('Rs. ${(s['total_amount'] ?? 0).toStringAsFixed(0)', style: const TextStyle(fontWeight: FontWeight.w700, color: BizAIColors.brandOrange)),
+                          Text('Rs. ${(s['total_amount'] ?? 0).toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w700, color: BizAIColors.brandOrange)),
                           const SizedBox(height: 4),
                           _statusBadge(s['payment_status']),
                         ],
