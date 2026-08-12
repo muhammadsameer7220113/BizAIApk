@@ -2,10 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'storage_service.dart';
 
-final storageServiceProvider = Provider<StorageService>((ref) {
-  return StorageService();
-});
-
 class ApiService {
   late final Dio _dio;
   final Ref ref;
@@ -19,14 +15,14 @@ class ApiService {
     ));
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
-        final storage = ref.read(storageServiceProvider);
+        final storage = ref.watch(storageServiceProvider);
         final token = await storage.getToken();
         if (token != null) options.headers['Authorization'] = 'Bearer $token';
         handler.next(options);
       },
       onError: (error, handler) async {
         if (error.response?.statusCode == 401) {
-          final storage = ref.read(storageServiceProvider);
+          final storage = ref.watch(storageServiceProvider);
           final refresh = await storage.getRefreshToken();
           if (refresh != null) {
             try {
