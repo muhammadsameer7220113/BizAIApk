@@ -23,10 +23,205 @@ jobs:
           flutter-version: '3.16.9'
           channel: stable
       
-      - name: Build APK
+      - name: Fix pubspec.yaml
+        run: |
+          cd flutter_app
+          cat > pubspec.yaml << 'EOF'
+          name: bizai
+          description: BizAI - AI Business Operating System
+          publish_to: 'none'
+          version: 1.1.2+1
+          
+          environment:
+            sdk: '>=3.0.0 <4.0.0'
+          
+          dependencies:
+            flutter:
+              sdk: flutter
+            flutter_riverpod: ^2.5.1
+            go_router: ^14.2.0
+            dio: ^5.4.3
+            flutter_secure_storage: ^9.2.2
+            shared_preferences: ^2.2.3
+            intl: ^0.19.0
+          
+          dev_dependencies:
+            flutter_test:
+              sdk: flutter
+          
+          flutter:
+            uses-material-design: true
+          EOF
+      
+      - name: Fix theme.dart - remove google_fonts
+        run: |
+          sed -i "/google_fonts/d" flutter_app/lib/app/theme.dart
+      
+      - name: Create Android project files
+        run: |
+          cd flutter_app
+          mkdir -p android/app/src/main/kotlin/com/bizai/app
+          mkdir -p android/app/src/main/res/values
+          mkdir -p android/app/src/main/res/drawable
+          mkdir -p android/gradle/wrapper
+          
+          cat > android/settings.gradle << 'EOF'
+          pluginManagement {
+              def flutterSdkPath = {
+                  def properties = new Properties()
+                  file("local.properties").withInputStream { properties.load(it) }
+                  def flutterSdkPath = properties.getProperty("flutter.sdk")
+                  assert flutterSdkPath != null, "flutter.sdk not set"
+                  return flutterSdkPath
+              }()
+              includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
+              repositories { google(); mavenCentral(); gradlePluginPortal() }
+          }
+          plugins {
+              id "dev.flutter.flutter-plugin-loader" version "1.0.0"
+              id "com.android.application" version "8.1.0" apply false
+              id "org.jetbrains.kotlin.android" version "1.8.22" apply false
+          }
+          include ":app"
+          EOF
+          
+          cat > android/build.gradle << 'EOF'
+          allprojects { repositories { google(); mavenCentral() } }
+          rootProject.buildDir = '../build'
+          subprojects { project.buildDir = "${rootProject.buildDir}/${project.name}" }
+          subprojects { project.evaluationDependsOn(':app') }
+          tasks.register("clean", Delete) { delete rootProject.buildDir }
+          EOF
+          
+          cat > android/gradle.properties << 'EOF'
+          org.gradle.jvmargs=-Xmx4G
+          android.useAndroidX=true
+          android.enableJetifier=true
+          EOF
+          
+          cat > android/local.properties << 'EOF'
+          flutter.sdk=/opt/flutter
+          sdk.dir=/usr/local/lib/android/sdk
+          EOF
+          
+          cat > android/gradle/wrapper/gradle-wrapper.properties << 'EOF'
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-7.6.3-all.zip
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          EOF
+          
+          cat > android/app/build.gradle << 'EOF'
+          plugins {
+              id "com.android.application"
+              id "kotlin-android"
+              id "dev.flutter.flutter-gradle-plugin"
+          }
+          android {
+              namespace "com.bizai.app"
+              compileSdk 34
+              ndkVersion flutter.ndkVersion
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_1_8
+                  targetCompatibility JavaVersion.VERSION_1_8
+              }
+              kotlinOptions { jvmTarget = '1.8' }
+              sourceSets { main.java.srcDirs += 'src/main/kotlin' }
+              defaultConfig {
+                  applicationId "com.bizai.app"
+                  minSdk 21
+                  targetSdk 34
+                  versionCode 2
+                  versionName "1.1.2"
+              }
+              buildTypes {
+                  release { signingConfig signingConfigs.debug }
+              }
+          }
+          flutter { source '../..' }
+          dependencies {}
+          EOF
+          
+          cat > android/app/src/main/AndroidManifest.xml << 'EOF'
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET"/>
+              <application
+                  android:label="BizAI"
+                  android:name="${applicationName}">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true"
+                      android:launchMode="singleTop"
+                      android:theme="@style/LaunchTheme"
+                      android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+                      android:hardwareAccelerated="true"
+                      android:windowSoftInputMode="adjustResize">
+                      <meta-data android:name="io.flutter.embedding.android.NormalTheme" android:resource="@style/NormalTheme"/>
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+                  <meta-data android:name="flutterEmbedding" android:value="2" />
+              </application>
+          </manifest>
+          EOF
+          
+          cat > android/app/src/main/kotlin/com/bizai/app/MainActivity.kt << 'EOF'
+          package com.bizai.app
+          import io.flutter.embedding.android.FlutterActivity
+          class MainActivity: FlutterActivity()
+          EOF
+          
+          cat > android/app/src/main/res/values/styles.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+                  <item name="android:windowBackground">@drawable/launch_background</item>
+              </style>
+              <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
+                  <item name="android:windowBackground">?android:colorBackground</item>
+              </style>
+          </resources>
+          EOF
+          
+          cat > android/app/src/main/res/drawable/launch_background.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+              <item android:drawable="@android:color/white" />
+          </layer-list>
+          EOF
+      
+      - name: Fix compilation errors in Dart files
+        run: |
+          cd flutter_app
+          # Fix sales_list_screen.dart - broken string quote
+          sed -i "s/.toStringAsFixed(0)',/.toStringAsFixed(0)}',/g" lib/screens/billing/sales_list_screen.dart
+          
+          # Fix ai_chat_screen.dart - InputBorder abstract
+          sed -i "s/border: InputBorder(enabledBorder: OutlineInputBorder())/enabledBorder: OutlineInputBorder(), focusedBorder: OutlineInputBorder()/g" lib/screens/ai/ai_chat_screen.dart
+          
+          # Fix api_service.dart - ref.read to ref.watch
+          sed -i 's/ref\.read(storageServiceProvider)/ref.watch(storageServiceProvider)/g' lib/core/services/api_service.dart
+          
+          # Fix DropdownMenuItem type errors
+          sed -i "s/DropdownMenuItem(value: c\['id'\], child: Text(c\['name'\]))/DropdownMenuItem<int>(value: c['id'] as int, child: Text(c['name'].toString()))/g" lib/screens/products/product_form_screen.dart
+          sed -i "s/DropdownMenuItem(value: s\['id'\], child: Text(s\['name'\]))/DropdownMenuItem<int>(value: s['id'] as int, child: Text(s['name'].toString()))/g" lib/screens/purchases/purchase_form_screen.dart
+          sed -i "s/DropdownMenuItem(value: c\['id'\], child: Text(c\['name'\]))/DropdownMenuItem<int>(value: c['id'] as int, child: Text(c['name'].toString()))/g" lib/screens/expenses/expense_form_screen.dart
+      
+      - name: Install dependencies
         run: |
           cd flutter_app
           flutter pub get
+      
+      - name: Accept Android licenses
+        run: |
+          yes | flutter doctor --android-licenses || true
+      
+      - name: Build APK Release
+        run: |
+          cd flutter_app
           flutter build apk --release
       
       - name: Upload APK
@@ -34,3 +229,4 @@ jobs:
         with:
           name: BizAI-v1.1.2.apk
           path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
