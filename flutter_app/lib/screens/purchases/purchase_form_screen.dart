@@ -26,7 +26,7 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Add Purchase')),
       body: SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(children: [
-        DropdownButtonFormField<int>(value: _supplierId, decoration: const InputDecoration(labelText: 'Supplier'), items: _suppliers.map((s) => DropdownMenuItem(value: s['id'], child: Text(s['name']))).toList(), onChanged: (v) => setState(() => _supplierId = v)),
+        DropdownButtonFormField<int>(value: _supplierId, decoration: const InputDecoration(labelText: 'Supplier'), items: _suppliers.map((s) => DropdownMenuItem<int>(value: s['id'] as int, child: Text(s['name'].toString()))).toList(), onChanged: (v) => setState(() => _supplierId = v)),
         const SizedBox(height: 24),
         const Text('Note: Purchase form needs product selection. Use simplified form for MVP.'),
         const SizedBox(height: 24),
