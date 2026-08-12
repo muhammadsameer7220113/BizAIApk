@@ -2,6 +2,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'storage_service.dart';
 
+final storageServiceProvider = Provider<StorageService>((ref) {
+  return StorageService();
+});
+
 class ApiService {
   late final Dio _dio;
   final Ref ref;
